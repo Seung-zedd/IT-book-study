@@ -44,4 +44,102 @@ sort(compareUsingCustomerId)
 
 스트림 API에서는 위와 같이 연산의 동작을 파라미터화해서 병렬적으로 처리할 수 있는 강력한 기능이 있는데 자세한 내용은 2장과 3장에서 다룬다고 한다.
 
+---
+### 1.3 자바 함수
+자바 프로그램에서 조작할 수 있는 값: 일급 시민에 해당 <br>
+1️⃣원시 타입: int형, double형 ... <br>
+2️⃣참조 타입: String, new 또는 팩토리 메서드 또는 라이브러리 함수를 활용한 객체의 참조값 <br>
+3️⃣배열
+
+🤔자바에서 함수가 필요한 이유? <br>
+👉프로그래밍 언어의 핵심은 **<span style='color:#eb3b5a'>값을 바꾸는 것</span>** 인데, 이 값을 *일급 시민(first-class)* 라고 부른다. <br> 
+그런데, 메서드, 클래스같은 구조체들은 다음과 같은 제약 사항에 따라 자유롭게 전달할 수 없기 때문에 이급 시민에 해당한다.
+
+🔖일급 시민이 되기 위한 조건 <br>
+1️⃣모든 일급 객체는 **변수나 데이터**에 담을 수 있어야 한다. <br>
+2️⃣모든 일급 객체는 **함수의 파라미터**로 전달할 수 있어야 한다. <br>
+3️⃣모든 일급 객체는 **함수의 리턴값**으로 사용할 수 있어야 한다. <br>
+
+그런데, 메서드는 위의 3가지 조건을 모두 충족시키지 못해서 이급객체에 해당한다.
+
+💡람다식을 활용해서 일급 객체로 사용하자! <br>
+자바8에 람다 함수라는 새로운 기능이 추가되었는데, 이를 활용해서 위의 3가지 조건을 모두 충족시킬 수 있다.
+
+1️⃣람다식을 **변수나 데이터**에 담을 수 있다.
+```java
+import java.util.function.Consumer;
+
+public class Main {
+    public static void main(String[] args) {
+        Consumer<String> c = (t) -> System.out.println(t); // 람다식을 인터페이스 타입 변수에 할당
+        c.accept("Hello World");
+    }
+}
+```
+람다 함수는 수학적인 함수와 기능이 동일하기 때문에, 어떤 변수에 대입할 수 있다.
+
+2️⃣람다 함수는 **함수의 파라미터**로 전달할 수 있다.
+```java
+import java.util.function.Consumer;
+
+public class Main {
+    // 메소드 매개변수로 람다 함수를 전달
+    public static void print(Consumer<String> c, String str) {
+        c.accept(str);
+    }
+
+    public static void main(String[] args) {
+        print((t) -> System.out.println(t) ,"Hello World");
+    }
+}
+```
+위의 첫번째 조건에서 `Consumer<String> c = (t) -> System.out.println(t);` 로 대입이 가능하기 때문에, 파라미터에서도 동일하게 적용할 수 있다.("Hello world"를 str에 전달하는 것도 마찬가지)
+
+3️⃣람다 함수는 **함수의 리턴값**으로 사용할 수 있다.
+```java
+import java.util.function.Consumer;
+
+public class Main {
+    public static Consumer<String> hello() {
+        // 람다 함수 자체를 리턴함
+        return (t) -> {
+            System.out.println(t);
+        };
+    }
+
+    public static void main(String[] args) {
+        Consumer<String> c = hello();
+        c.accept("Hello World");
+    }
+}
+```
+hello()를 호출하면 람다 함수 자체를 리턴하기 때문에, 이를 변수 c에 대입할 수 있다.
+
+따라서, 위의 3가지 조건을 모두 충족하기 때문에 람다 함수는 일급 객체에 해당한다고 볼 수 있다.
+
+📑참조 링크: https://inpa.tistory.com/entry/CS-%F0%9F%91%A8%E2%80%8D%F0%9F%92%BB-%EC%9D%BC%EA%B8%89-%EA%B0%9D%EC%B2%B4first-class-object
+
+### 1.3.1 메서드와 람다를 일급 시민으로
+메서드 참조(method reference): 이 메서드를 값으로 사용하라는 의미로, 위의 일급 객체 조건들을 활용하라는 의미로도 볼 수 있다.
+
+다음과 같은 예를 통해 메서드 참조가 어떻게 사용되는지 살펴보자.
+
+📜디렉토리에서 모든 숨겨진 파일을 필터링하고 싶다. <br>
+이때, File 클래스의 숨겨진 파일의 여부를 알려주는 isHidden() 메서드는 기본으로 제공해준다.
+
+1.자바8 이전의 익명클래스를 사용할 때
+```java
+File[] hiddenFiles = new File(".").listFiles(new FileFilter() {
+	public boolean accept(File file) {
+		return file.isHidden();
+	}
+});
+```
+isHiddden()의 메서드 값을 전달하기 위해, FileFilter라는 객체를 만들고, 그것을 listFiles 파라미터에 전달하는 복잡한 과정을 거친다.
+
+2.자바8 이후의 메서드 참조를 사용할 때
+```java
+File[] hiddenFiles = new File(".").listFiles(File::isHidden) // boolean 값을 listFiles에 전달
+```
+파일 클래스에 isHidden() 함수가 이미 있으니까, isHidden() 함수 값을 listFiles에 직접 전달할 수가 있어서(함수 파라미터에 전달하는 2번째 조건에 해당) 코드가 굉장히 직관적으로 변하였다.
 
